@@ -1,9 +1,9 @@
 // Fundemental variables for running the game
+const rows = 4;
+const columns = 4;
 let board;
 let tempBoard;
 let score = 0;
-const rows = 4;
-const columns = 4;
 
 // Variables for animations
 let animQueueMovements = new Map();
@@ -12,20 +12,18 @@ let animQueueUpdates = new Map();
 
 // Variables for Pointer input (Mouse, Trackpad, etc)
 let isCursorLocked = false;
-let isGateOpen = true; // bool to only read first pointer movement-delta from input
+let isGateOpen = true; // to only read first pointer movement-delta from input
 let pointerDelta = [0,0];
 
 
 
 
 function updateTile(tile, num) {
-    // clear the given tile's visual text
+    // refreshing the working tile's contents with baseline styling
     tile.innerText = "";
-    // clear the list of styles previously connected to the given tile
     tile.classList.value = ""; 
-    // start building the tile style-wise from the base `tile` style 
     tile.classList.add("tile");
-    // based on the given number the tile should be, append the matching style to the style list
+    // based on the given number the tile should be, append the matching style to the tile
     if (num > 0) {
         tile.innerText = num;
         if (num <= 4096) {
@@ -147,10 +145,21 @@ function slide(row) {
 }
 
 function slideLeft() {
+    // tracking if sliding was possible
+    let wereChanges = false;
+    
+    
     for (let r=0; r<rows; r++) {
-        let row = board[r];
+        let preSlide = board[r].slice();
+        let row = board[r].slice();
         row = slide(row);
-        board[r] = row;
+        board[r] = row.slice();
+        
+        for (let i=0; i<preSlide.length; i++) {
+            if (preSlide[i] != row[i]) {
+                wereChanges = true;
+            }
+        }
 
         for (let c=0; c<columns; c++) {
             let tile = document.getElementById(r.toString()+"-"+c.toString());
@@ -158,16 +167,29 @@ function slideLeft() {
             updateTile(tile, num);
         }
     }
+
+    return wereChanges;
 }
 
-// Reusing the slideLeft() func by just raeding the arrays backwards
+// Reusing the slideLeft() func by just reading the arrays backwards
 function slideRight() {
+    // tracking if sliding was possible
+    let wereChanges = false;
+
+    console.log("Board");
     for (let r=0; r<rows; r++) {
-        let row = board[r];
+        let preSlide = board[r].slice();
+        let row = board[r].slice();
         row.reverse();
         row = slide(row);
         row.reverse();
-        board[r] = row;
+        board[r] = row.slice();
+
+        for (let i=0; i<preSlide.length; i++) {
+            if (preSlide[i] != row[i]) {
+                wereChanges = true;
+            }
+        }
 
         for (let c=0; c<columns; c++) {
             let tile = document.getElementById(r.toString()+"-"+c.toString());
@@ -175,17 +197,32 @@ function slideRight() {
             updateTile(tile, num);
         }
     }
+
+    return wereChanges;
 }
 
 function slideUp() {
+    // tracking if sliding was possible
+    let wereChanges = false;
+
     for (let c=0; c<columns; c++) {
         let row = [];
+        let preSlide = [];
         for (let r=0; r<rows; r++) {
             row.push(board[r][c]);
         }
+
+        preSlide = row.slice();
         row = slide(row);
+
         for (let r=0; r<rows; r++) {
             board[r][c] = row[r];
+        }
+
+        for (let i=0; i<preSlide.length; i++) {
+            if (preSlide[i] != row[i]) {
+                wereChanges = true;
+            }
         }
 
         for (let r=0; r<rows; r++) {
@@ -194,19 +231,32 @@ function slideUp() {
             updateTile(tile, num);
         }
     }
+    return wereChanges;
 }
 
 function slideDown() {
+    // tracking if sliding was possible
+    let wereChanges = false;
+
     for (let c=0; c<columns; c++) {
         let row = [];
+        let preSlide = [];
         for (let r=0; r<rows; r++) {
             row.push(board[r][c]);
         }
+
+        preSlide = row.slice();
         row.reverse();
         row = slide(row);
         row.reverse();
         for (let r=0; r<rows; r++) {
             board[r][c] = row[r];
+        }
+
+         for (let i=0; i<preSlide.length; i++) {
+            if (preSlide[i] != row[i]) {
+                wereChanges = true;
+            }
         }
         
         for (let r=0; r<rows; r++) {
@@ -215,66 +265,39 @@ function slideDown() {
             updateTile(tile, num);
         }
     }
+    return wereChanges;
 }
 
 
-/* function areBoardsEqual(board1, board2) {
-    if (board1.length != board2.length) {
-        return false;
-    }
-    for (let r=0; r<board1.length; r++) {
-        for (let c=0; c<board1[r].length; c++) {
-            if (board1[r][c] != board2[r][c]) {
-                return false;
-            }
-        }
-    }
-    return true;
-} */
-
-
-// Game input when cursor is not locked
+// Game input when pointer is not locked
 document.addEventListener("keyup", (e) => {
     if (!isCursorLocked) {
         if (e.code == "ArrowLeft") {
-            // tempBoard = [];
-            slideLeft();
-            /* if (areBoardsEqual(board, tempBoard)) {
-                spawnTile();
-            } */
-            spawnTile();
+            let didSlide = slideLeft();
+            if (didSlide) { 
+                spawnTile(); 
+            }
         }
         else if (e.code == "ArrowRight") {
-            // tempBoard = [];
-            slideRight();
-            /* if (areBoardsEqual(board, tempBoard)) {
+            let didSlide = slideRight();
+            if (didSlide) {
                 spawnTile();
-            } */
-            spawnTile();
+            }
         }
         else if (e.code == "ArrowUp") {
-            // tempBoard = [];
-            slideUp();
-            /* if (areBoardsEqual(board, tempBoard)) {
+            let didSlide = slideUp();
+            if (didSlide) {
                 spawnTile();
-            } */
-            spawnTile();
+            }
         }
         else if (e.code == "ArrowDown") {
-            // tempBoard = [];
-            slideDown();
-            /* if (areBoardsEqual(board, tempBoard)) {
+            let didSlide = slideDown();
+            if (didSlide) {
                 spawnTile();
-            } */
-            spawnTile();
+            }
         }
         document.getElementById("score").innerText = score;
-        //spawnTile();
-    } /* else {
-        if (e.code == "Escape") {
-            isCursorLocked = false;
-        }
-    } */
+    } 
 })
 
 
@@ -294,7 +317,7 @@ document.addEventListener("click", (e) => {
     document.body.requestPointerLock();
 })
 
-var moveCounter = 0;
+let moveCounter = 0;
 
 // Game input when cursor is locked
 document.addEventListener("mousemove", (e) => {
@@ -303,10 +326,10 @@ document.addEventListener("mousemove", (e) => {
         if (pointerDelta[0] != 0 && pointerDelta[1] != 0) {
             console.log(pointerDelta);
         }
-        // console.log(isGateOpen);
 
         if (isGateOpen && (pointerDelta[0] != 0 && pointerDelta[1] != 0)) {
-            // pointerDelta = [e.movementX, e.movementY];
+            let didSlide = false;
+            
             console.log(pointerDelta);
             moveCounter++;
             console.log(moveCounter);
@@ -314,46 +337,35 @@ document.addEventListener("mousemove", (e) => {
 
             if (Math.abs(pointerDelta[0]) > Math.abs(pointerDelta[1])) {
                 if (pointerDelta[0] > 0) {
-                    // tempBoard = board;
-                    slideRight();
-                    /* if (areBoardsEqual(board, tempBoard)) {
+                    didSlide = slideRight();
+                    if (didSlide) {
                         spawnTile();
-                    } */
+                    }
                 } else {
-                    // tempBoard = board;
-                    slideLeft();
-                    /* if (areBoardsEqual(board, tempBoard)) {
+                    didSlide = slideLeft();
+                    if (didSlide) {
                         spawnTile();
-                    } */
+                    }
                 }
             } else {
                 if (pointerDelta[1] > 0) {
-                    // tempBoard = board;
-                    slideDown();
-                    /* if (areBoardsEqual(board, tempBoard)) {
+                    didSlide = slideDown();
+                    if (didSlide) {
                         spawnTile();
-                    } */
+                    }
                 } else {
-                    // tempBoard = board;
-                    slideUp();
-                    /* if (areBoardsEqual(board, tempBoard)) {
+                    didSlide = slideUp();
+                    if (didSlide) {
                         spawnTile();
-                    } */
+                    }
                 }
             }
-            spawnTile();
             
             setTimeout(() => {
                 isGateOpen = true;
             }, 250);
 
         }
-        /* if (e.movementX == 0 && e.movementY == 0) {
-            isGateOpen = true;
-        } */
-        // isGateOpen = false;
-        
-
     }
 })
 
