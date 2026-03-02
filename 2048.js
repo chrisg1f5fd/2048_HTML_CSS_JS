@@ -1,9 +1,9 @@
 // Fundemental variables for running the game
+const rows = 4;
+const columns = 4;
 let board;
 let tempBoard;
 let score = 0;
-const rows = 4;
-const columns = 4;
 
 // Variables for animations
 let animQueueMovements = new Map();
@@ -12,20 +12,18 @@ let animQueueUpdates = new Map();
 
 // Variables for Pointer input (Mouse, Trackpad, etc)
 let isCursorLocked = false;
-let isGateOpen = true; // bool to only read first pointer movement-delta from input
+let isGateOpen = true; // to only read first pointer movement-delta from input
 let pointerDelta = [0,0];
 
 
 
 
 function updateTile(tile, num) {
-    // clear the given tile's visual text
+    // refreshing the working tile's contents with baseline styling
     tile.innerText = "";
-    // clear the list of styles previously connected to the given tile
     tile.classList.value = ""; 
-    // start building the tile style-wise from the base `tile` style 
     tile.classList.add("tile");
-    // based on the given number the tile should be, append the matching style to the style list
+    // based on the given number the tile should be, append the matching style to the tile
     if (num > 0) {
         tile.innerText = num;
         if (num <= 4096) {
@@ -147,10 +145,21 @@ function slide(row) {
 }
 
 function slideLeft() {
+    // tracking if sliding was possible
+    let wereChanges = false;
+    
     for (let r=0; r<rows; r++) {
-        let row = board[r];
+        let preSlide = board[r].slice();
+        let row = board[r].slice();
         row = slide(row);
-        board[r] = row;
+        
+        for (let i=0; i<preSlide.length; i++) {
+            if (preSlide[i] != row[i]) {
+                wereChanges = true;
+            }
+        }
+
+        board[r] = row.slice();
 
         for (let c=0; c<columns; c++) {
             let tile = document.getElementById(r.toString()+"-"+c.toString());
@@ -158,16 +167,45 @@ function slideLeft() {
             updateTile(tile, num);
         }
     }
+
+    return wereChanges;
 }
 
-// Reusing the slideLeft() func by just raeding the arrays backwards
+// Reusing the slideLeft() func by just reading the arrays backwards
 function slideRight() {
+    // tracking if sliding was possible
+    let wereChanges = false;
+
+    console.log("Board");
     for (let r=0; r<rows; r++) {
-        let row = board[r];
+        let preSlide = board[r].slice();
+        let row = board[r].slice();
         row.reverse();
         row = slide(row);
         row.reverse();
-        board[r] = row;
+
+        let rowForPrinting = "";
+        for (let i=0; i<preSlide.length; i++) {
+            rowForPrinting = rowForPrinting + preSlide[i].toString() + ", ";
+        }
+        console.log("Row before sliding: " + rowForPrinting);
+
+        rowForPrinting = "";
+        for (let i=0; i<row.length; i++) {
+            rowForPrinting = rowForPrinting + row[i].toString() + ", ";
+        }
+        console.log("Row after sliding: " + rowForPrinting);
+
+
+        // console.log("Board");
+        for (let i=0; i<preSlide.length; i++) {
+            if (preSlide[i] != row[i]) {
+                // console.log("["+r.toString()+","+i.toString()+"]", preSlide[i].toString(), row[i].toString());
+                wereChanges = true;
+            }
+        }
+
+        board[r] = row.slice();
 
         for (let c=0; c<columns; c++) {
             let tile = document.getElementById(r.toString()+"-"+c.toString());
@@ -175,6 +213,8 @@ function slideRight() {
             updateTile(tile, num);
         }
     }
+
+    return wereChanges;
 }
 
 function slideUp() {
@@ -233,24 +273,20 @@ function slideDown() {
 } */
 
 
-// Game input when cursor is not locked
+// Game input when pointer is not locked
 document.addEventListener("keyup", (e) => {
     if (!isCursorLocked) {
         if (e.code == "ArrowLeft") {
-            // tempBoard = [];
-            slideLeft();
-            /* if (areBoardsEqual(board, tempBoard)) {
-                spawnTile();
-            } */
-            spawnTile();
+            let didSlide = slideLeft();
+            if (didSlide) { 
+                spawnTile(); 
+            }
         }
         else if (e.code == "ArrowRight") {
-            // tempBoard = [];
-            slideRight();
-            /* if (areBoardsEqual(board, tempBoard)) {
+            let didSlide = slideRight();
+            if (didSlide) {
                 spawnTile();
-            } */
-            spawnTile();
+            }
         }
         else if (e.code == "ArrowUp") {
             // tempBoard = [];
